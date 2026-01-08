@@ -1,9 +1,9 @@
 import NextAuth from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
+import Credentials from "next-auth/providers/credentials";
 
-export const authOptions = {
+export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
-    CredentialsProvider({
+    Credentials({
       name: "Credentials",
       credentials: {
         username: { label: "Username", type: "text" },
@@ -19,7 +19,7 @@ export const authOptions = {
         if (credentials.username && credentials.password) {
           return {
             id: "1",
-            name: credentials.username,
+            name: credentials.username as string,
             email: `${credentials.username}@control-plane.com`,
           };
         }
@@ -31,10 +31,8 @@ export const authOptions = {
     signIn: "/login",
   },
   session: {
-    strategy: "jwt" as const,
+    strategy: "jwt",
   },
   secret: process.env.NEXTAUTH_SECRET || "your-secret-key-change-in-production",
-};
-
-export default NextAuth(authOptions);
+});
 
