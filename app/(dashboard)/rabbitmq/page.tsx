@@ -30,26 +30,23 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const samplePayloads = {
-  practice: JSON.stringify(
+  "mwi-push": JSON.stringify(
     {
-      type: "practice",
-      practiceId: "PR123456",
-      action: "sync",
-      timestamp: new Date().toISOString(),
-    },
+      "event": "mwi",
+      "endpoint": "2470744ae1873abbff9c0b9899@dentalhub.csiq.io",
+      "payload": { "newVoicemailCount": 1, "oldVoicemailCount": 0 }
+    }
+    ,
     null,
     2
   ),
-  location: JSON.stringify(
+  "check-sync": JSON.stringify(
     {
-      type: "location",
-      locationId: "LOC789012",
-      action: "update",
-      data: {
-        name: "Main Office",
-        address: "123 Main St",
-      },
-    },
+      "event": "provision",
+      "endpoint": "2470744ae1873abbff9c0b9899@paradigm.csiq.io",
+      "payload": { "action": "yealink-check-cfg" }
+    }
+    ,
     null,
     2
   ),
@@ -179,8 +176,8 @@ export default function RabbitMQPage() {
                     <SelectValue placeholder="Sample Payloads" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="practice">Practice</SelectItem>
-                    <SelectItem value="location">Location</SelectItem>
+                    <SelectItem value="mwi-push">Push MWI</SelectItem>
+                    <SelectItem value="check-sync">Check Sync</SelectItem>
                     <SelectItem value="device">Device</SelectItem>
                   </SelectContent>
                 </Select>
