@@ -8,7 +8,7 @@ const RegionContext = createContext<{
   region: string;
   setRegion: (region: string) => void;
 }>({
-  region: "AU",
+  region: "AU-VOICESTACK",
   setRegion: () => {},
 });
 
@@ -17,10 +17,10 @@ export function useRegion() {
 }
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const [region, setRegionState] = useState("AU");
+  const [region, setRegionState] = useState("AU-VOICESTACK");
 
   useEffect(() => {
-    // Load region from localStorage or default to AU
+    // Load region from localStorage or default to AU-VOICESTACK
     const savedRegion = localStorage.getItem("selectedRegion");
     if (savedRegion) {
       setRegionState(savedRegion);

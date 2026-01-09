@@ -17,7 +17,7 @@ interface RegionSelectorProps {
 }
 
 export function RegionSelector({ value, onValueChange }: RegionSelectorProps) {
-  const [selectedRegion, setSelectedRegion] = useState(value || "AU");
+  const [selectedRegion, setSelectedRegion] = useState(value || "AU-VOICESTACK");
 
   useEffect(() => {
     if (value) {
@@ -34,13 +34,13 @@ export function RegionSelector({ value, onValueChange }: RegionSelectorProps) {
     <div className="flex items-center gap-2">
       <Globe className="h-4 w-4 text-slate-400" />
       <Select value={selectedRegion} onValueChange={handleChange}>
-        <SelectTrigger className="w-[140px]">
-          <SelectValue placeholder="Select region" />
+        <SelectTrigger className="w-[160px]">
+          <SelectValue placeholder="Select Region" />
         </SelectTrigger>
         <SelectContent>
           {REGIONS.map((region) => (
             <SelectItem key={region.code} value={region.code}>
-              {region.name} ({region.code})
+              {region.name}
             </SelectItem>
           ))}
         </SelectContent>

@@ -17,20 +17,32 @@ export interface RegionConfig {
  */
 export const REGIONS: RegionConfig[] = [
   {
-    code: "AU",
-    name: "Australia",
+    code: "AU-VOICESTACK",
+    name: "AU Voicestack",
     grpcHost: process.env.GRPC_AU_HOST || "localhost",
     grpcPort: parseInt(process.env.GRPC_AU_PORT || "50051", 10),
   },
   {
-    code: "US",
-    name: "United States",
+    code: "US-VOICESTACK",
+    name: "US Voicestack",
     grpcHost: process.env.GRPC_US_HOST || "localhost",
     grpcPort: parseInt(process.env.GRPC_US_PORT || "50052", 10),
   },
   {
-    code: "UK",
-    name: "United Kingdom",
+    code: "US-CSIQ",
+    name: "US CSIQ",
+    grpcHost: process.env.GRPC_US_HOST || "localhost",
+    grpcPort: parseInt(process.env.GRPC_US_PORT || "50052", 10),
+  },
+  {
+    code: "UK-VOICESTACK",
+    name: "UK Voicestack",
+    grpcHost: process.env.GRPC_UK_HOST || "localhost",
+    grpcPort: parseInt(process.env.GRPC_UK_PORT || "50053", 10),
+  },
+  {
+    code: "UK-CSIQ",
+    name: "UK CSIQ",
     grpcHost: process.env.GRPC_UK_HOST || "localhost",
     grpcPort: parseInt(process.env.GRPC_UK_PORT || "50053", 10),
   },
