@@ -29,18 +29,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const passwordMatch = await bcrypt.compare(credentials.password as string, user.password as string);
         if (!passwordMatch) return null;
 
-        return user;
-
-        // In production, validate against your authentication system
-        // For now, accept any credentials (demo mode)
-        if (credentials.username && credentials.password) {
-          return {
-            id: "1",
-            name: credentials.username as string,
-            email: `${credentials.username}@control-plane.com`,
-          };
-        }
-        return null;
+        return {
+          id: user.uuid,
+          username: user.username,
+          email: user.email,
+        };
       },
     }),
   ],

@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getGrpcClient, grpcCall } from "@/lib/grpc-client";
 import { isValidRegion } from "@/lib/regions";
 import type { PushToRabbitMQQueueRequest, PushToRabbitMQResponse } from "@/types/grpc";
+import { getUserDetails } from "@/lib/utils";
+import { AuditLog } from "@/lib/database/entities/AuditLog";
+import { getDataSource } from "@/lib/database/data-source";
+import { AUDIT_LOG_ACTIONS } from "@/lib/constants";
 
 export async function POST(
   request: NextRequest,
@@ -9,7 +13,9 @@ export async function POST(
 ) {
   try {
     const { region } = await params;
-    
+    // get user details
+    const userDetails = await getUserDetails();
+
     if (!isValidRegion(region)) {
       return NextResponse.json(
         { error: `Invalid region: ${region}` },
@@ -28,10 +34,21 @@ export async function POST(
     }
 
     const client = getGrpcClient(region);
+    console.log({queueName, payloadJson, client});
+    const { email } = userDetails;
+    const auditLog: AuditLog = {
+      region: region as string,
+      payload: JSON.stringify({ region, queueName, payloadJson }),
+      action: AUDIT_LOG_ACTIONS.PUSH_QUEUE,
+      doneBy: email,
+    };
+    const db = await getDataSource();
+    const auditLogRepository = db.getRepository(AuditLog);
+    await auditLogRepository.save(auditLog);
     // Convert camelCase to snake_case for proto
     const grpcRequest: any = {
-      queue_name: queueName,
-      payload_json: typeof payloadJson === "string" ? payloadJson : JSON.stringify(payloadJson),
+      queueName: queueName,
+      payloadJson: typeof payloadJson === "string" ? payloadJson : JSON.stringify(payloadJson),
     };
 
     const response = await grpcCall<any, PushToRabbitMQResponse>(
@@ -39,7 +56,7 @@ export async function POST(
       "PushToRabbitMQQueue",
       grpcRequest
     );
-
+console.log({response});
     return NextResponse.json(response);
   } catch (error) {
     console.error("gRPC error:", error);

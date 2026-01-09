@@ -115,7 +115,11 @@ export default function RabbitMQPage() {
       if (!response.ok) {
         throw new Error(result.error || "Failed to push to queue");
       }
-
+      // Set to default values after successful submission
+      setValue("queueName", "");
+      // set the payload to a placeholder payload as first time user will open the page
+      setValue("payload", "");
+      
       toast.success("Message pushed to queue successfully");
     } catch (error) {
       toast.error(

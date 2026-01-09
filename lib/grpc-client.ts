@@ -60,17 +60,12 @@ export function grpcCall<TRequest, TResponse>(
   request: TRequest
 ): Promise<TResponse> {
   return new Promise((resolve, reject) => {
-    const methodCall = client[method] as (
-      request: TRequest,
-      callback: (error: grpc.ServiceError | null, response: TResponse) => void
-    ) => void;
-
-    methodCall(request, (error, response) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve(response);
-      }
-    });
+  (client[method] as (request: TRequest, callback: (error: grpc.ServiceError | null, response: TResponse) => void) => void)(request as TRequest, (error: grpc.ServiceError | null, response: TResponse) => {
+    if (error) {
+      reject(error);
+      return;
+    }
+    resolve(response as TResponse);
   });
+});
 }
