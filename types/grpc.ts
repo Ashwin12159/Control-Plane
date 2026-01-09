@@ -64,6 +64,17 @@ export interface PhoneNumberList {
   phoneNumbers: string[];
 }
 
+// Numbers Not In Number Cache Types
+export interface GetNumbersNotInNumberCacheRequest {
+  // No parameters needed - checks all Bifrost practices
+}
+
+export interface GetNumbersNotInNumberCacheResponse {
+  success: boolean;
+  message: string;
+  practiceNumbers: Record<string, PhoneNumberList>;
+}
+
 // Legacy types for backward compatibility (deprecated - use new types above)
 export interface PushQueueRequest {
   queueName: string;

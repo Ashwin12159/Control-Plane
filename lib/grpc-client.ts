@@ -9,6 +9,8 @@ import type {
   CheckSyncResponse,
   GetNumbersNotInBifrostRequest,
   GetNumbersNotInBifrostResponse,
+  GetNumbersNotInNumberCacheRequest,
+  GetNumbersNotInNumberCacheResponse,
 } from "@/types/grpc";
 
 const PROTO_PATH = path.join(process.cwd(), "proto", "ops.proto");
@@ -33,6 +35,10 @@ interface OperationsServiceClient extends grpc.Client {
   GetNumbersNotInBifrost: (
     request: GetNumbersNotInBifrostRequest,
     callback: (error: grpc.ServiceError | null, response: GetNumbersNotInBifrostResponse) => void
+  ) => void;
+  GetNumbersNotInNumberCache: (
+    request: GetNumbersNotInNumberCacheRequest,
+    callback: (error: grpc.ServiceError | null, response: GetNumbersNotInNumberCacheResponse) => void
   ) => void;
 }
 

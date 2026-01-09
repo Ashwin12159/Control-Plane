@@ -32,19 +32,19 @@ export async function POST(
     const grpcRequest: any = {};
     if (checkType.device) {
       grpcRequest.device = {
-        device_make: checkType.device.deviceMake,
-        sip_account: checkType.device.sipAccount,
+        deviceMake: checkType.device.deviceMake,
+        sipAccount: checkType.device.sipAccount,
       };
     } else if (checkType.location) {
       grpcRequest.location = {
-        location_id: checkType.location.locationId,
+        locationId: checkType.location.locationId,
       };
     } else if (checkType.practice) {
       grpcRequest.practice = {
-        practice_id: checkType.practice.practiceId,
+        practiceId: checkType.practice.practiceId,
       };
     } else if (checkType.allBifrost) {
-      grpcRequest.all_bifrost = {
+      grpcRequest.allBifrost = {
         confirm: checkType.allBifrost.confirm,
       };
     }

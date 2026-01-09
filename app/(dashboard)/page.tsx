@@ -64,6 +64,22 @@ export default function DashboardPage() {
             </Link>
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Phone className="h-5 w-5 text-blue-500" />
+              Number not in Number Cache
+            </CardTitle>
+            <CardDescription>
+              Lookup numbers not in Number Cache for Bifrost practices
+            </CardDescription>  
+          </CardHeader>
+          <CardContent>
+            <Link href="/numbers-not-in-number-cache">
+              <Button className="w-full">Open Numbers Not in Number Cache</Button>
+            </Link>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

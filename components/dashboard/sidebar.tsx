@@ -8,6 +8,7 @@ import {
   RefreshCw,
   Phone,
   LayoutDashboard,
+  Database,
 } from "lucide-react";
 
 const navigation = [
@@ -15,6 +16,7 @@ const navigation = [
   { name: "RabbitMQ", href: "/rabbitmq", icon: MessageSquare },
   { name: "Check Sync", href: "/check-sync", icon: RefreshCw },
   { name: "Numbers", href: "/numbers", icon: Phone },
+  { name: "Numbers Not in Cache", href: "/numbers-not-in-number-cache", icon: Database },
 ];
 
 export function Sidebar() {
