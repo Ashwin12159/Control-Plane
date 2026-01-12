@@ -75,6 +75,18 @@ export interface GetNumbersNotInNumberCacheResponse {
   practiceNumbers: Record<string, PhoneNumberList>;
 }
 
+// Generate Signed URL Types
+export interface GenerateSignedURLRequest {
+  url: string;
+}
+
+export interface GenerateSignedURLResponse {
+  success: boolean;
+  message: string;
+  signedUrl: string;
+  expiresIn: number; // Expiry time in seconds
+}
+
 // Legacy types for backward compatibility (deprecated - use new types above)
 export interface PushQueueRequest {
   queueName: string;

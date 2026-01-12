@@ -30,23 +30,26 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const samplePayloads = {
-  "mwi-push": JSON.stringify(
+  practice: JSON.stringify(
     {
-      "event": "mwi",
-      "endpoint": "2470744ae1873abbff9c0b9899@dentalhub.csiq.io",
-      "payload": { "newVoicemailCount": 1, "oldVoicemailCount": 0 }
-    }
-    ,
+      type: "practice",
+      practiceId: "PR123456",
+      action: "sync",
+      timestamp: new Date().toISOString(),
+    },
     null,
     2
   ),
-  "check-sync": JSON.stringify(
+  location: JSON.stringify(
     {
-      "event": "provision",
-      "endpoint": "2470744ae1873abbff9c0b9899@paradigm.csiq.io",
-      "payload": { "action": "yealink-check-cfg" }
-    }
-    ,
+      type: "location",
+      locationId: "LOC789012",
+      action: "update",
+      data: {
+        name: "Main Office",
+        address: "123 Main St",
+      },
+    },
     null,
     2
   ),
@@ -115,11 +118,7 @@ export default function RabbitMQPage() {
       if (!response.ok) {
         throw new Error(result.error || "Failed to push to queue");
       }
-      // Set to default values after successful submission
-      setValue("queueName", "");
-      // set the payload to a placeholder payload as first time user will open the page
-      setValue("payload", "");
-      
+
       toast.success("Message pushed to queue successfully");
     } catch (error) {
       toast.error(
@@ -180,8 +179,8 @@ export default function RabbitMQPage() {
                     <SelectValue placeholder="Sample Payloads" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="mwi-push">Push MWI</SelectItem>
-                    <SelectItem value="check-sync">Check Sync</SelectItem>
+                    <SelectItem value="practice">Practice</SelectItem>
+                    <SelectItem value="location">Location</SelectItem>
                     <SelectItem value="device">Device</SelectItem>
                   </SelectContent>
                 </Select>

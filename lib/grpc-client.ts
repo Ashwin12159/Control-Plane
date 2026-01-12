@@ -11,6 +11,8 @@ import type {
   GetNumbersNotInBifrostResponse,
   GetNumbersNotInNumberCacheRequest,
   GetNumbersNotInNumberCacheResponse,
+  GenerateSignedURLRequest,
+  GenerateSignedURLResponse,
 } from "@/types/grpc";
 
 const PROTO_PATH = path.join(process.cwd(), "proto", "ops.proto");
@@ -39,6 +41,10 @@ interface OperationsServiceClient extends grpc.Client {
   GetNumbersNotInNumberCache: (
     request: GetNumbersNotInNumberCacheRequest,
     callback: (error: grpc.ServiceError | null, response: GetNumbersNotInNumberCacheResponse) => void
+  ) => void;
+  GenerateSignedURL: (
+    request: GenerateSignedURLRequest,
+    callback: (error: grpc.ServiceError | null, response: GenerateSignedURLResponse) => void
   ) => void;
 }
 

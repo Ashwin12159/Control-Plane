@@ -34,12 +34,16 @@ export function RegionSelector({ value, onValueChange }: RegionSelectorProps) {
     <div className="flex items-center gap-2">
       <Globe className="h-4 w-4 text-slate-400" />
       <Select value={selectedRegion} onValueChange={handleChange}>
-        <SelectTrigger className="w-[160px]">
+        <SelectTrigger className="w-[160px] border-slate-700 bg-slate-900 hover:bg-slate-800 transition-all duration-200 hover:border-cyan-500/50">
           <SelectValue placeholder="Select Region" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="bg-slate-900 border-slate-700">
           {REGIONS.map((region) => (
-            <SelectItem key={region.code} value={region.code}>
+            <SelectItem 
+              key={region.code} 
+              value={region.code}
+              className="hover:bg-slate-800 focus:bg-slate-800 transition-colors"
+            >
               {region.name}
             </SelectItem>
           ))}

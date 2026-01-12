@@ -1,9 +1,7 @@
 "use client";
 
-import { signOut } from "next-auth/react";
-import { Button } from "@/components/ui/button";
 import { RegionSelector } from "./region-selector";
-import { LogOut } from "lucide-react";
+import { UserMenu } from "./user-menu";
 
 interface HeaderProps {
   region: string;
@@ -16,15 +14,9 @@ export function Header({ region, onRegionChange }: HeaderProps) {
       <div className="flex items-center gap-4">
         <RegionSelector value={region} onValueChange={onRegionChange} />
       </div>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => signOut({ callbackUrl: "/login" })}
-        className="gap-2"
-      >
-        <LogOut className="h-4 w-4" />
-        Sign Out
-      </Button>
+      <div className="flex items-center">
+        <UserMenu />
+      </div>
     </header>
   );
 }

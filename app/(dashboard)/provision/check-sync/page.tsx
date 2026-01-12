@@ -24,7 +24,7 @@ import type { CheckSyncResponse } from "@/types/grpc";
 
 const deviceFormSchema = z.object({
   deviceMake: z.enum(["Yealink", "Polycom"], {
-    required_error: "Device make is required",
+    errorMap: () => ({ message: "Device make is required" }),
   }),
   sipAccount: z.string().min(1, "SIP account is required"),
 });

@@ -31,6 +31,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         return {
           id: user.uuid,
+          name: user.username,
           username: user.username,
           email: user.email,
         };
@@ -42,6 +43,26 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   session: {
     strategy: "jwt",
+  },
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.name = user.name;
+        token.username = (user as any).username;
+        token.email = user.email;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id as string;
+        session.user.name = token.name as string;
+        (session.user as any).username = token.username as string;
+        session.user.email = token.email as string;
+      }
+      return session;
+    },
   },
   secret: process.env.NEXTAUTH_SECRET || "your-secret-key-change-in-production",
 });

@@ -30,6 +30,9 @@ service OperationsService {
   
   // Broadcast JSON payload to RabbitMQ exchange
   rpc BroadcastToRabbitMQExchange(BroadcastToRabbitMQExchangeRequest) returns (PushToRabbitMQResponse);
+  
+  // Generate signed URL for S3 recording URL
+  rpc GenerateSignedURL(GenerateSignedURLRequest) returns (GenerateSignedURLResponse);
 }
 
 // Update Number Config Messages
@@ -187,4 +190,16 @@ message RunMigrationRequest {
 message RunMigrationResponse {
   bool success = 1;
   string message = 2;
+}
+
+// Generate Signed URL Messages
+message GenerateSignedURLRequest {
+  string url = 1;  // Required: S3 URL to generate signed URL for
+}
+
+message GenerateSignedURLResponse {
+  bool success = 1;
+  string message = 2;
+  string signed_url = 3;  // The generated signed URL (valid for 3 hours)
+  int64 expires_in = 4;  // Expiry time in seconds (10800 for 3 hours)
 }
