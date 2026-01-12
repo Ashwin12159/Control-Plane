@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getGrpcClient, grpcCall } from "@/lib/grpc-client";
 import { isValidRegion } from "@/lib/regions";
-import type { PushToRabbitMQQueueRequest, PushToRabbitMQResponse } from "@/types/grpc";
+import type { GetCompleteCallDetailsRequest, GetCompleteCallDetailsResponse } from "@/types/grpc";
 import { getUserDetails } from "@/lib/utils";
 import { createAuditLog } from "@/lib/audit";
 import { requirePermissionFromSession, PERMISSIONS } from "@/lib/permissions";
 import { AUDIT_LOG_ACTIONS } from "@/lib/constants";
+import { getCacheValue, setCacheValue, getCompleteCallDetailsCacheKey } from "@/lib/cache";
 
 export async function POST(
   request: NextRequest,
@@ -26,7 +27,7 @@ export async function POST(
     const permissionCheck = requirePermissionFromSession(
       userDetails.permissions,
       userDetails.role,
-      PERMISSIONS.RABBITMQ
+      PERMISSIONS.EXPORT_CALL_DETAILS
     );
     if (!permissionCheck.authorized) {
       return NextResponse.json(
@@ -36,49 +37,62 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { queueName, payloadJson } = body;
+    const { callId, practiceId } = body;
 
-    if (!queueName || !payloadJson) {
+    if (!callId) {
       return NextResponse.json(
-        { error: "queueName and payloadJson are required" },
+        { error: "callId is required" },
         { status: 400 }
       );
     }
 
+    // Check cache first
+    const cacheKey = getCompleteCallDetailsCacheKey(region, callId, practiceId);
+    const cachedResponse = await getCacheValue<GetCompleteCallDetailsResponse>(cacheKey);
+
+    if (cachedResponse) {
+      // Return cached response (no audit log for cache hits to avoid spam)
+      return NextResponse.json(cachedResponse);
+    }
+
+    // Cache miss - fetch from gRPC
     const client = getGrpcClient(region);
-    // Convert camelCase to snake_case for proto
-    const grpcRequest: any = {
-      queueName: queueName,
-      payloadJson: typeof payloadJson === "string" ? payloadJson : JSON.stringify(payloadJson),
+    
+    // Proto loader converts camelCase to snake_case automatically
+    const grpcRequest: GetCompleteCallDetailsRequest = {
+      callId: callId,
+      practiceId: practiceId || undefined,
     };
 
-    const response = await grpcCall<any, PushToRabbitMQResponse>(
+    const response = await grpcCall<GetCompleteCallDetailsRequest, GetCompleteCallDetailsResponse>(
       client,
-      "PushToRabbitMQQueue",
+      "GetCompleteCallDetails",
       grpcRequest
     );
 
-    // Create audit log
-    await createAuditLog(
-      AUDIT_LOG_ACTIONS.PUSH_QUEUE,
-      region,
-      { queueName, payloadJson }
-    );
-    if (!response.success) {
-      return NextResponse.json( 
-        { error: response.message },
-        { status: 400 }
-      );
+    // Cache the response for 10 minutes (600 seconds)
+    if (response.success) {
+      await setCacheValue(cacheKey, response, 600);
     }
 
+    // Create audit log
+    await createAuditLog(
+      AUDIT_LOG_ACTIONS.EXPORT_CALL_DETAILS,
+      region,
+      { callId, practiceId }
+    );
+
     return NextResponse.json(response);
-  } catch (error) {
+  } catch (error: any) {
     console.error("gRPC error:", error);
     return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Unknown error occurred",
+      { 
+        error: error.message || "Failed to get complete call details",
+        success: false,
+        message: error.message || "Failed to get complete call details"
       },
       { status: 500 }
     );
   }
 }
+

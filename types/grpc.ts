@@ -87,6 +87,82 @@ export interface GenerateSignedURLResponse {
   expiresIn: number; // Expiry time in seconds
 }
 
+// List Practices Types
+export interface ListPracticesRequest {
+  // No parameters needed - returns all active practices
+}
+
+export interface Practice {
+  practiceId: string;
+  practiceName: string;
+}
+
+export interface ListPracticesResponse {
+  success: boolean;
+  message: string;
+  practices: Practice[];
+}
+
+// Get Call Details Types
+export interface GetCallDetailsRequest {
+  practiceId: string; // Required: Practice ID
+  callId: string; // Required: Call ID to search for
+}
+
+export interface CallFlowEvent {
+  action: string; // e.g., "INCOMING_CALL", "IVR", "QUEUE", "ANSWERED", etc.
+  timestamp: string; // ISO 8601
+  arguments: Record<string, string>; // Event-specific data
+  isCampaign?: boolean; // For incoming calls
+}
+
+export interface CallFlow {
+  callId: string;
+  phoneNumber: string;
+  events: CallFlowEvent[];
+}
+
+export interface CallDetails {
+  callId: string;
+  practiceId: string;
+  callTime: string; // ISO 8601 timestamp
+  conversationDuration: number; // Duration in seconds
+  callerNumber: string;
+  calleeNumber: string;
+  callDirection: string; // "inbound" or "outbound"
+  voicemail: boolean;
+  recordingUrl: string;
+  callEndTime: string; // ISO 8601 timestamp
+  callFlow?: CallFlow;
+}
+
+export interface GetCallDetailsResponse {
+  success: boolean;
+  message: string;
+  callDetails?: CallDetails;
+}
+
+// Get Complete Call Details Types
+export interface GetCompleteCallDetailsRequest {
+  callId: string; // Required: Call ID to search for
+  practiceId?: string; // Optional: Practice ID for filtering
+}
+
+export interface CompleteCallDetails {
+  callId: string;
+  practiceId: string;
+  callHistoryJson: string; // Complete callhistory document as JSON string
+  callLifecycleJson: string; // Complete calllifecycles document as JSON string
+  hasCallHistory: boolean; // Whether callhistory document exists
+  hasCallLifecycle: boolean; // Whether calllifecycles document exists
+}
+
+export interface GetCompleteCallDetailsResponse {
+  success: boolean;
+  message: string;
+  callDetails?: CompleteCallDetails;
+}
+
 // Legacy types for backward compatibility (deprecated - use new types above)
 export interface PushQueueRequest {
   queueName: string;

@@ -33,6 +33,14 @@ service OperationsService {
   
   // Generate signed URL for S3 recording URL
   rpc GenerateSignedURL(GenerateSignedURLRequest) returns (GenerateSignedURLResponse);
+  
+  // List all practices
+  rpc ListPractices(ListPracticesRequest) returns (ListPracticesResponse);
+  
+  // Get call details by callId and practiceId
+  rpc GetCallDetails(GetCallDetailsRequest) returns (GetCallDetailsResponse);
+
+  rpc GetCompleteCallDetails(GetCompleteCallDetailsRequest) returns (GetCompleteCallDetailsResponse);
 }
 
 // Update Number Config Messages
@@ -202,4 +210,80 @@ message GenerateSignedURLResponse {
   string message = 2;
   string signed_url = 3;  // The generated signed URL (valid for 3 hours)
   int64 expires_in = 4;  // Expiry time in seconds (10800 for 3 hours)
+}
+
+// List Practices Messages
+message ListPracticesRequest {
+  // No parameters needed - returns all active practices
+}
+
+message Practice {
+  string practice_id = 1;
+  string practice_name = 2;
+}
+
+message ListPracticesResponse {
+  bool success = 1;
+  string message = 2;
+  repeated Practice practices = 3;
+}
+
+// Get Call Details Messages
+message GetCallDetailsRequest {
+  string practice_id = 1;  // Required: Practice ID
+  string call_id = 2;  // Required: Call ID to search for
+}
+
+message GetCallDetailsResponse {
+  bool success = 1;
+  string message = 2;
+  CallDetails call_details = 3;
+}
+
+message CallDetails {
+  string call_id = 1;
+  string practice_id = 2;
+  string call_time = 3;  // ISO 8601 timestamp
+  int32 conversation_duration = 4;  // Duration in seconds
+  string caller_number = 5;
+  string callee_number = 6;
+  string call_direction = 7;  // "inbound" or "outbound"
+  bool voicemail = 8;
+  string recording_url = 9;
+  string call_end_time = 10;
+  CallFlow call_flow = 11;
+}
+
+message CallFlow {
+  string call_id = 1;
+  string phone_number = 2;
+  repeated CallFlowEvent events = 3;
+}
+
+message CallFlowEvent {
+  string action = 1;  // e.g., "INCOMING_CALL", "IVR", "QUEUE", "ANSWERED", etc.
+  string timestamp = 2;  // ISO 8601
+  map<string, string> arguments = 3;  // Event-specific data
+  bool is_campaign = 4;  // For incoming calls
+}
+
+// Get Complete Call Details Messages
+message GetCompleteCallDetailsRequest {
+  string call_id = 1;  // Required: Call ID to search for
+  string practice_id = 2;  // Optional: Practice ID for filtering
+}
+
+message GetCompleteCallDetailsResponse {
+  bool success = 1;
+  string message = 2;
+  CompleteCallDetails call_details = 3;
+}
+
+message CompleteCallDetails {
+  string call_id = 1;
+  string practice_id = 2;
+  string call_history_json = 3;  // Complete callhistory document as JSON string
+  string call_lifecycle_json = 4;  // Complete calllifecycles document as JSON string
+  bool has_call_history = 5;  // Whether callhistory document exists
+  bool has_call_lifecycle = 6;  // Whether calllifecycles document exists
 }

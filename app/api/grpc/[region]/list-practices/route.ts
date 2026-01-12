@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getGrpcClient, grpcCall } from "@/lib/grpc-client";
 import { isValidRegion } from "@/lib/regions";
-import type { GetNumbersNotInBifrostRequest, GetNumbersNotInBifrostResponse } from "@/types/grpc";
+import type { ListPracticesRequest, ListPracticesResponse } from "@/types/grpc";
 import { getUserDetails } from "@/lib/utils";
 import { requirePermissionFromSession, PERMISSIONS } from "@/lib/permissions";
-import { createAuditLog } from "@/lib/audit";
-import { AUDIT_LOG_ACTIONS } from "@/lib/constants";
 
-export async function POST(
+export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ region: string }> }
 ) {
@@ -26,7 +24,7 @@ export async function POST(
     const permissionCheck = requirePermissionFromSession(
       userDetails.permissions,
       userDetails.role,
-      PERMISSIONS.NUMBERS_NOT_IN_BIFROST
+      PERMISSIONS.LIST_PRACTICES
     );
     if (!permissionCheck.authorized) {
       return NextResponse.json(
@@ -35,35 +33,15 @@ export async function POST(
       );
     }
 
-    const body = await request.json();
-    const { trunkSid } = body;
-
-    if (!trunkSid) {
-      return NextResponse.json(
-        { error: "trunkSid is required" },
-        { status: 400 }
-      );
-    }
-
     const client = getGrpcClient(region);
-    // Convert camelCase to snake_case for proto
-    const grpcRequest: any = {
-      trunk_sid: trunkSid,
-    };
+    // Empty request - no parameters needed
+    const grpcRequest: ListPracticesRequest = {};
 
-    const response = await grpcCall<any, GetNumbersNotInBifrostResponse>(
+    const response = await grpcCall<ListPracticesRequest, ListPracticesResponse>(
       client,
-      "GetNumbersNotInBifrost",
+      "ListPractices",
       grpcRequest
     );
-
-    // Create audit log
-    await createAuditLog(
-      AUDIT_LOG_ACTIONS.GET_NUMBERS_NOT_IN_BIFROST,
-      region,
-      { trunkSid }
-    );
-
     return NextResponse.json(response);
   } catch (error) {
     console.error("gRPC error:", error);
@@ -75,3 +53,4 @@ export async function POST(
     );
   }
 }
+

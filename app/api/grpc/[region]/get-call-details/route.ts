@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getGrpcClient, grpcCall } from "@/lib/grpc-client";
 import { isValidRegion } from "@/lib/regions";
-import type { GetNumbersNotInBifrostRequest, GetNumbersNotInBifrostResponse } from "@/types/grpc";
+import type { GetCallDetailsRequest, GetCallDetailsResponse } from "@/types/grpc";
 import { getUserDetails } from "@/lib/utils";
 import { requirePermissionFromSession, PERMISSIONS } from "@/lib/permissions";
 import { createAuditLog } from "@/lib/audit";
@@ -26,7 +26,7 @@ export async function POST(
     const permissionCheck = requirePermissionFromSession(
       userDetails.permissions,
       userDetails.role,
-      PERMISSIONS.NUMBERS_NOT_IN_BIFROST
+      PERMISSIONS.CALL_DETAILS
     );
     if (!permissionCheck.authorized) {
       return NextResponse.json(
@@ -36,32 +36,42 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { trunkSid } = body;
+    const { practiceId, callId } = body;
 
-    if (!trunkSid) {
+    // Validate inputs
+    if (!practiceId || typeof practiceId !== "string") {
       return NextResponse.json(
-        { error: "trunkSid is required" },
+        { error: "practiceId is required and must be a string" },
+        { status: 400 }
+      );
+    }
+
+    if (!callId || typeof callId !== "string") {
+      return NextResponse.json(
+        { error: "callId is required and must be a string" },
         { status: 400 }
       );
     }
 
     const client = getGrpcClient(region);
-    // Convert camelCase to snake_case for proto
+    
+    // Convert camelCase to snake_case for gRPC
     const grpcRequest: any = {
-      trunk_sid: trunkSid,
+      practiceId: practiceId,
+      callId: callId,
     };
 
-    const response = await grpcCall<any, GetNumbersNotInBifrostResponse>(
+    const response = await grpcCall<any, GetCallDetailsResponse>(
       client,
-      "GetNumbersNotInBifrost",
+      "GetCallDetails",
       grpcRequest
     );
 
     // Create audit log
     await createAuditLog(
-      AUDIT_LOG_ACTIONS.GET_NUMBERS_NOT_IN_BIFROST,
+      AUDIT_LOG_ACTIONS.GET_CALL_DETAILS,
       region,
-      { trunkSid }
+      { practiceId, callId }
     );
 
     return NextResponse.json(response);
@@ -75,3 +85,4 @@ export async function POST(
     );
   }
 }
+

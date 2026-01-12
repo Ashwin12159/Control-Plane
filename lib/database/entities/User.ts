@@ -1,9 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from "typeorm";
+import { Role } from "./Role";
 
 @Entity("users")
 export class User {
-  @PrimaryGeneratedColumn("uuid")
-  id!: string;
+  @PrimaryGeneratedColumn()
+  id!: number; // INT AUTO_INCREMENT in database
 
   @Column({ unique: true })
   uuid!: string;
@@ -16,6 +17,13 @@ export class User {
 
   @Column()
   password!: string;
+
+  @Column({ type: "varchar", length: 36, nullable: true, name: "role_id" })
+  roleId!: string | null;
+
+  @ManyToOne(() => Role, (role) => role.users, { nullable: true })
+  @JoinColumn({ name: "role_id" })
+  role!: Role | null;
 
   @CreateDateColumn()
   createdAt!: Date;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { RouteProtection } from "@/components/route-protection";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -88,8 +89,6 @@ export default function RabbitMQPage() {
     },
   });
 
-  const payload = watch("payload");
-
   const onSubmit = async (data: FormValues) => {
     setPendingSubmit(() => () => {
       performSubmit(data);
@@ -135,6 +134,7 @@ export default function RabbitMQPage() {
   };
 
   return (
+    <RouteProtection>
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-white">RabbitMQ Queue</h1>
@@ -243,7 +243,8 @@ export default function RabbitMQPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </RouteProtection>
   );
 }
 

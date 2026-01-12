@@ -13,6 +13,12 @@ import type {
   GetNumbersNotInNumberCacheResponse,
   GenerateSignedURLRequest,
   GenerateSignedURLResponse,
+  ListPracticesRequest,
+  ListPracticesResponse,
+  GetCallDetailsRequest,
+  GetCallDetailsResponse,
+  GetCompleteCallDetailsRequest,
+  GetCompleteCallDetailsResponse,
 } from "@/types/grpc";
 
 const PROTO_PATH = path.join(process.cwd(), "proto", "ops.proto");
@@ -46,12 +52,24 @@ interface OperationsServiceClient extends grpc.Client {
     request: GenerateSignedURLRequest,
     callback: (error: grpc.ServiceError | null, response: GenerateSignedURLResponse) => void
   ) => void;
+  ListPractices: (
+    request: ListPracticesRequest,
+    callback: (error: grpc.ServiceError | null, response: ListPracticesResponse) => void
+  ) => void;
+  GetCallDetails: (
+    request: GetCallDetailsRequest,
+    callback: (error: grpc.ServiceError | null, response: GetCallDetailsResponse) => void
+  ) => void;
+  GetCompleteCallDetails: (
+    request: GetCompleteCallDetailsRequest,
+    callback: (error: grpc.ServiceError | null, response: GetCompleteCallDetailsResponse) => void
+  ) => void;
 }
 
 function createMetadata(regionCode: string): grpc.Metadata {
   const metadata = new grpc.Metadata();
   metadata.set("x-region", regionCode);
-  
+    
   // Generate token variable name: AUTH_TOKEN_{REGION_CODE} with dashes replaced by underscores
   const tokenVariableName = `AUTH_TOKEN_${regionCode.toUpperCase().replace(/-/g, "_")}`;
   const token = process.env[tokenVariableName];

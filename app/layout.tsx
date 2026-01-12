@@ -15,8 +15,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Telecom Operations Control Plane",
+  title: "Telecom Operations Control Planes",
   description: "Control plane for telecom operations",
+  icons: {
+    icon: "/voicestack.png",
+    shortcut: "/voicestack.png",
+    apple: "/voicestack.png",
+  },
 };
 
 export default function RootLayout({
@@ -30,7 +35,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-950 text-white`}
       >
         <Providers>
-          {children}
+        {children}
           <Toaster position="top-right" theme="dark" />
         </Providers>
       </body>

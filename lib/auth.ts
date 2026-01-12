@@ -22,6 +22,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const userRepo = db.getRepository(User);
         const user = await userRepo.findOne({
           where: { username: credentials.username as string },
+          relations: ["role", "role.permissions"],
         });
 
         if (!user) return null;
@@ -29,11 +30,35 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const passwordMatch = await bcrypt.compare(credentials.password as string, user.password as string);
         if (!passwordMatch) return null;
 
+        // Get user permissions
+        let permissions: string[] = [];
+        if (user.role) {
+          if (user.role.name === "super_admin") {
+            // Super admin has all permissions
+            permissions = [
+              "rabbitmq",
+              "check-sync",
+              "numbers-not-in-bifrost",
+              "numbers-not-in-cache",
+              "generate-signed-url",
+              "call-details",
+              "list-practices",
+            ];
+          } else {
+            // Regular users get permissions from their role
+            permissions = user.role.permissions
+              ?.filter((p) => p.isActive)
+              .map((p) => p.name) || [];
+          }
+        }
+
         return {
           id: user.uuid,
           name: user.username,
           username: user.username,
           email: user.email,
+          role: user.role?.name || null,
+          permissions: permissions,
         };
       },
     }),
@@ -51,6 +76,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.name = user.name;
         token.username = (user as any).username;
         token.email = user.email;
+        token.role = (user as any).role;
+        token.permissions = (user as any).permissions || [];
       }
       return token;
     },
@@ -60,6 +87,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.name = token.name as string;
         (session.user as any).username = token.username as string;
         session.user.email = token.email as string;
+        (session.user as any).role = token.role as string | null;
+        (session.user as any).permissions = (token.permissions as string[]) || [];
       }
       return session;
     },

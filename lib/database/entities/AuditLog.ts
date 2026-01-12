@@ -19,4 +19,10 @@ export class AuditLog {
   @Column()
   region!: string;
 
+  @CreateDateColumn()
+  createdAt!: Date;
+
+  @UpdateDateColumn()
+  updatedAt!: Date;
+
 }

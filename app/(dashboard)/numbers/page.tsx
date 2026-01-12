@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { RouteProtection } from "@/components/route-protection";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -142,7 +143,8 @@ export default function NumbersPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <RouteProtection>
+      <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-white">Numbers Lookup</h1>
         <p className="text-slate-400 mt-2">
@@ -288,6 +290,7 @@ export default function NumbersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </RouteProtection>
   );
 }

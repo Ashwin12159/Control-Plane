@@ -2,6 +2,8 @@ import "reflect-metadata";
 import { DataSource } from "typeorm";
 import { User } from "./entities/User";
 import { AuditLog } from "./entities/AuditLog";
+import { Role } from "./entities/Role";
+import { Permission } from "./entities/Permission";
 
 // Load environment variables (for non-Next.js contexts like CLI)
 if (typeof window === "undefined" && !process.env.NEXT_RUNTIME) {
@@ -25,7 +27,7 @@ export const getDataSource = async () => {
     username: process.env.DB_USERNAME || "root",
     password: process.env.DB_PASSWORD || "root",
     database: process.env.DB_DATABASE || process.env.DB_NAME || "control_plane",
-    entities: [User, AuditLog],
+    entities: [User, AuditLog, Role, Permission],
     synchronize: false,
     logging: process.env.NODE_ENV === "development",
   });

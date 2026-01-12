@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getGrpcClient, grpcCall } from "@/lib/grpc-client";
 import { isValidRegion } from "@/lib/regions";
 import type { GenerateSignedURLRequest, GenerateSignedURLResponse } from "@/types/grpc";
+import { getUserDetails } from "@/lib/utils";
+import { requirePermissionFromSession, PERMISSIONS } from "@/lib/permissions";
+import { createAuditLog } from "@/lib/audit";
+import { AUDIT_LOG_ACTIONS } from "@/lib/constants";
 
 export async function POST(
   request: NextRequest,
@@ -14,6 +18,20 @@ export async function POST(
       return NextResponse.json(
         { error: `Invalid region: ${region}` },
         { status: 400 }
+      );
+    }
+
+    // Check permissions from JWT (faster than DB query)
+    const userDetails = await getUserDetails();
+    const permissionCheck = requirePermissionFromSession(
+      userDetails.permissions,
+      userDetails.role,
+      PERMISSIONS.GENERATE_SIGNED_URL
+    );
+    if (!permissionCheck.authorized) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: 403 }
       );
     }
 
@@ -37,6 +55,13 @@ export async function POST(
       client,
       "GenerateSignedURL",
       grpcRequest
+    );
+
+    // Create audit log
+    await createAuditLog(
+      AUDIT_LOG_ACTIONS.GENERATE_SIGNED_URL,
+      region,
+      { url }
     );
 
     return NextResponse.json(response);
