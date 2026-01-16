@@ -1,5 +1,6 @@
 export const AUDIT_LOG_ACTIONS = {
   PUSH_QUEUE: "push-queue",
+  BROADCAST_EXCHANGE: "broadcast-exchange",
   CHECK_SYNC: "check-sync",
   GET_NUMBERS_NOT_IN_BIFROST: "get-numbers-not-in-bifrost",
   GET_NUMBERS_NOT_IN_CACHE: "get-numbers-not-in-number-cache",
@@ -8,3 +9,4 @@ export const AUDIT_LOG_ACTIONS = {
   LIST_PRACTICES: "list-practices",
   EXPORT_CALL_DETAILS: "export-call-details",
 } as const;
+

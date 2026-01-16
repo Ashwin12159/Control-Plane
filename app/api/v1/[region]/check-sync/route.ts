@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getGrpcClient, grpcCall } from "@/lib/grpc-client";
 import { isValidRegion } from "@/lib/regions";
-import type { GetNumbersNotInBifrostRequest, GetNumbersNotInBifrostResponse } from "@/types/grpc";
-import { getUserDetails } from "@/lib/utils";
+import type { CheckSyncRequest, CheckSyncResponse } from "@/types/grpc";
+import { getUserDetails, getClientIP } from "@/lib/utils";
 import { requirePermissionFromSession, PERMISSIONS } from "@/lib/permissions";
 import { createAuditLog } from "@/lib/audit";
 import { AUDIT_LOG_ACTIONS } from "@/lib/constants";
@@ -26,7 +26,7 @@ export async function POST(
     const permissionCheck = requirePermissionFromSession(
       userDetails.permissions,
       userDetails.role,
-      PERMISSIONS.NUMBERS_NOT_IN_BIFROST
+      PERMISSIONS.CHECK_SYNC
     );
     if (!permissionCheck.authorized) {
       return NextResponse.json(
@@ -36,32 +36,52 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { trunkSid } = body;
+    const { checkType } = body;
 
-    if (!trunkSid) {
+    if (!checkType) {
       return NextResponse.json(
-        { error: "trunkSid is required" },
+        { error: "checkType is required" },
         { status: 400 }
       );
     }
 
-    const client = getGrpcClient(region);
-    // Convert camelCase to snake_case for proto
-    const grpcRequest: any = {
-      trunk_sid: trunkSid,
-    };
+    // Get client IP and userId for gRPC headers
+    const clientIP = getClientIP(request);
+    const requestId = crypto.randomUUID();
+    const client = getGrpcClient(region, userDetails.id, clientIP, requestId);
+    // Convert camelCase to snake_case for proto oneof
+    const grpcRequest: any = {};
+    if (checkType.device) {
+      grpcRequest.device = {
+        deviceMake: checkType.device.deviceMake,
+        sipAccount: checkType.device.sipAccount,
+      };
+    } else if (checkType.location) {
+      grpcRequest.location = {
+        locationId: checkType.location.locationId,
+      };
+    } else if (checkType.practice) {
+      grpcRequest.practice = {
+        practiceId: checkType.practice.practiceId,
+      };
+    } else if (checkType.allBifrost) {
+      grpcRequest.allBifrost = {
+        confirm: checkType.allBifrost.confirm,
+      };
+    }
 
-    const response = await grpcCall<any, GetNumbersNotInBifrostResponse>(
+    const response = await grpcCall<any, CheckSyncResponse>(
       client,
-      "GetNumbersNotInBifrost",
+      "CheckSync",
       grpcRequest
     );
 
     // Create audit log
     await createAuditLog(
-      AUDIT_LOG_ACTIONS.GET_NUMBERS_NOT_IN_BIFROST,
+      AUDIT_LOG_ACTIONS.CHECK_SYNC,
       region,
-      { trunkSid }
+      requestId,
+      { checkType }
     );
 
     return NextResponse.json(response);

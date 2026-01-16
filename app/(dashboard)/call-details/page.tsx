@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useRegion } from "@/components/dashboard/dashboard-layout";
 import { toast } from "sonner";
-import { Loader2, Search, Phone, Clock, Calendar, ChevronDown, Check, Copy, Download } from "lucide-react";
+import { Loader2, Search, Phone, Clock, Calendar, ChevronDown, Check, Copy, Download, ExternalLink } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { PERMISSIONS } from "@/lib/permissions";
 import { hasPermissionFromSession } from "@/lib/permissions";
@@ -45,6 +45,7 @@ export default function CallDetailsPage() {
   const [pendingSubmit, setPendingSubmit] = useState<(() => void) | null>(null);
   const [practiceSearchQuery, setPracticeSearchQuery] = useState("");
   const [isPracticeDropdownOpen, setIsPracticeDropdownOpen] = useState(false);
+  const [recordingUrlCopied, setRecordingUrlCopied] = useState(false);
   const practiceInputRef = useRef<HTMLInputElement>(null);
   const practiceDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -111,7 +112,7 @@ export default function CallDetailsPage() {
     const fetchPractices = async () => {
       setIsLoadingPractices(true);
       try {
-        const response = await fetch(`/api/grpc/${region}/list-practices`);
+        const response = await fetch(`/api/v1/${region}/list-practices`);
         const result = await response.json();
 
         if (!response.ok) {
@@ -148,7 +149,7 @@ export default function CallDetailsPage() {
     setCallDetails(null);
 
     try {
-      const response = await fetch(`/api/grpc/${region}/get-call-details`, {
+      const response = await fetch(`/api/v1/${region}/get-call-details`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -217,7 +218,7 @@ export default function CallDetailsPage() {
 
     setIsLoadingCompleteDetails(true);
     try {
-      const response = await fetch(`/api/grpc/${region}/get-complete-call-details`, {
+      const response = await fetch(`/api/v1/${region}/get-complete-call-details`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -270,6 +271,19 @@ export default function CallDetailsPage() {
       );
     } finally {
       setIsLoadingCompleteDetails(false);
+    }
+  };
+
+  const handleCopyRecordingUrl = async () => {
+    if (!callDetails?.recordingUrl) return;
+
+    try {
+      await navigator.clipboard.writeText(callDetails.recordingUrl);
+      setRecordingUrlCopied(true);
+      toast.success("Recording URL copied to clipboard");
+      setTimeout(() => setRecordingUrlCopied(false), 2000);
+    } catch (error) {
+      toast.error("Failed to copy recording URL");
     }
   };
 
@@ -393,26 +407,38 @@ export default function CallDetailsPage() {
                   Information for Call ID: {callDetails.callId}
                 </CardDescription>
               </div>
-              {canExport && (
-                <Button
-                  variant="outline"
-                  onClick={handleCopyCompleteDetails}
-                  disabled={isLoadingCompleteDetails}
-                  className="border-slate-700 text-slate-300 hover:bg-slate-800"
-                >
-                  {isLoadingCompleteDetails ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Loading...
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="mr-2 h-4 w-4" />
-                      Copy from MongoDB
-                    </>
-                  )}
-                </Button>
-              )}
+              <div className="flex gap-2">
+                {callDetails.grafanaUrl && (
+                  <Button
+                    variant="outline"
+                    onClick={() => window.open(callDetails.grafanaUrl, '_blank', 'noopener,noreferrer')}
+                    className="border-slate-700 text-slate-300 hover:bg-slate-800"
+                  >
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    View in Grafana
+                  </Button>
+                )}
+                {canExport && (
+                  <Button
+                    variant="outline"
+                    onClick={handleCopyCompleteDetails}
+                    disabled={isLoadingCompleteDetails}
+                    className="border-slate-700 text-slate-300 hover:bg-slate-800"
+                  >
+                    {isLoadingCompleteDetails ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="mr-2 h-4 w-4" />
+                        Copy from MongoDB
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -489,24 +515,32 @@ export default function CallDetailsPage() {
             </div>
 
             {/* Voicemail Row - Full Width */}
-            <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700">
+            {/* <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700">
               <p className="text-sm text-slate-400 mb-1">Voicemail</p>
               <p className="text-lg font-semibold text-white">
                 {callDetails.voicemail ? "Yes" : "No"}
               </p>
-            </div>
-
+            </div> */}
             {callDetails.recordingUrl && (
               <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700">
                 <p className="text-sm text-slate-400 mb-2">Recording URL</p>
-                <a
-                  href={callDetails.recordingUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-400 hover:text-blue-300 underline break-all"
-                >
-                  {callDetails.recordingUrl}
-                </a>
+                <div className="flex items-center gap-2">
+                  <p className="text-blue-400 break-all flex-1 font-mono text-sm">
+                    {callDetails.recordingUrl}
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleCopyRecordingUrl}
+                    className="border-slate-700 text-slate-300 hover:bg-slate-800 flex-shrink-0"
+                  >
+                    {recordingUrlCopied ? (
+                      <Check className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>

@@ -1,7 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from "typeorm";
 
 @Entity("audit_logs")
-export class AuditLog {
+export class 
+AuditLog {
 
   // ID AND UUID ARE AUTO GENERATED
   @PrimaryGeneratedColumn()
@@ -24,5 +25,8 @@ export class AuditLog {
 
   @UpdateDateColumn()
   updatedAt!: Date;
+
+  @Column({ type: "varchar", length: 255, nullable: false })
+  request_id!: string;
 
 }

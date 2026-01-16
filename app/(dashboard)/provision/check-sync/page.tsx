@@ -116,7 +116,7 @@ export default function CheckSyncPage() {
         };
       }
 
-      const response = await fetch(`/api/grpc/${region}/check-sync`, {
+      const response = await fetch(`/api/v1/${region}/check-sync`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -134,6 +134,19 @@ export default function CheckSyncPage() {
 
       setResult(result);
       toast.success("Sync check completed");
+      // Reset all forms to default values
+      deviceForm.reset({
+        deviceMake: "Yealink",
+        sipAccount: "",
+      });
+      locationForm.reset({
+        locationId: "",
+      });
+      practiceForm.reset({
+        practiceId: "",
+      });
+      // Reset active tab to device
+      setActiveTab("device");
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to check sync"

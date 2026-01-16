@@ -19,12 +19,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { REGIONS } from "@/lib/regions";
+import { AUDIT_LOG_ACTIONS } from "@/lib/constants";
 
 interface AuditLog {
   id: number;
   action: string;
   payload: string | null;
   doneBy: string;
+  requestId: string;
   username?: string;
   region: string;
   createdAt: string;
@@ -42,7 +44,7 @@ export default function AuditLogsPage() {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
     page: 1,
-    limit: 20,
+    limit: 10,
     total: 0,
     totalPages: 0,
   });
@@ -51,16 +53,24 @@ export default function AuditLogsPage() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [searchUsername, setSearchUsername] = useState("");
   const [filterRegion, setFilterRegion] = useState("all");
+  const [filterAction, setFilterAction] = useState("all");
 
   const fetchAuditLogs = async () => {
     setIsLoading(true);
     try {
+      // Ensure we always send limit=10
+      const currentPage = pagination.page || 1;
+      const currentLimit = pagination.limit || 10;
+      
       const params = new URLSearchParams({
-        page: pagination.page.toString(),
-        limit: pagination.limit.toString(),
+        page: currentPage.toString(),
+        limit: currentLimit.toString(),
         sortBy,
         sortOrder,
       });
+      
+      // Debug logging (remove in production)
+      console.log("Fetching audit logs - Page:", currentPage, "Limit:", currentLimit);
 
       if (searchUsername) {
         params.append("searchUsername", searchUsername);
@@ -68,6 +78,10 @@ export default function AuditLogsPage() {
 
       if (filterRegion && filterRegion !== "all") {
         params.append("filterRegion", filterRegion);
+      }
+
+      if (filterAction && filterAction !== "all") {
+        params.append("filterAction", filterAction);
       }
 
       const response = await fetch(`/api/audit-logs?${params}`);
@@ -88,15 +102,16 @@ export default function AuditLogsPage() {
     }
   };
 
+  // Reset to page 1 when filters change
   useEffect(() => {
-    // Reset to page 1 when filters change
     setPagination((prev) => ({ ...prev, page: 1 }));
-  }, [searchUsername, filterRegion]);
+  }, [searchUsername, filterRegion, filterAction]);
 
+  // Fetch data when pagination, sort, or filters change
   useEffect(() => {
     fetchAuditLogs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pagination.page, sortBy, sortOrder, searchUsername, filterRegion]);
+  }, [pagination.page, pagination.limit, sortBy, sortOrder, searchUsername, filterRegion, filterAction]);
 
   const handleSort = (field: "username" | "createdAt") => {
     if (sortBy === field) {
@@ -108,7 +123,9 @@ export default function AuditLogsPage() {
   };
 
   const handlePageChange = (newPage: number) => {
-    setPagination((prev) => ({ ...prev, page: newPage }));
+    if (newPage >= 1 && newPage <= pagination.totalPages) {
+      setPagination((prev) => ({ ...prev, page: newPage }));
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -156,7 +173,7 @@ export default function AuditLogsPage() {
           <CardContent>
             {/* Search and Filter Section */}
             <div className="mb-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Username Search */}
                 <div className="space-y-2">
                   <Label htmlFor="search-username" className="text-slate-300">
@@ -214,10 +231,42 @@ export default function AuditLogsPage() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Action Filter */}
+                <div className="space-y-2">
+                  <Label htmlFor="filter-action" className="text-slate-300">
+                    Filter by Action
+                  </Label>
+                  <Select value={filterAction} onValueChange={setFilterAction}>
+                    <SelectTrigger
+                      id="filter-action"
+                      className="bg-slate-800 border-slate-700 text-slate-200"
+                    >
+                      <SelectValue placeholder="All Actions" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-800 border-slate-700">
+                      <SelectItem
+                        value="all"
+                        className="text-slate-200 hover:bg-slate-700 focus:bg-slate-700"
+                      >
+                        All Actions
+                      </SelectItem>
+                      {Object.values(AUDIT_LOG_ACTIONS).map((action: string) => (
+                        <SelectItem
+                          key={action}
+                          value={action}
+                          className="text-slate-200 hover:bg-slate-700 focus:bg-slate-700"
+                        >
+                          {action}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               {/* Active Filters Display */}
-              {(searchUsername || (filterRegion && filterRegion !== "all")) && (
+              {(searchUsername || (filterRegion && filterRegion !== "all") || (filterAction && filterAction !== "all")) && (
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm text-slate-400">Active filters:</span>
                   {searchUsername && (
@@ -242,6 +291,17 @@ export default function AuditLogsPage() {
                       </button>
                     </span>
                   )}
+                  {filterAction && filterAction !== "all" && (
+                    <span className="px-2 py-1 rounded bg-green-500/20 text-green-400 text-xs font-medium flex items-center gap-1">
+                      Action: {filterAction}
+                      <button
+                        onClick={() => setFilterAction("all")}
+                        className="hover:text-green-300"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  )}
                 </div>
               )}
             </div>
@@ -261,7 +321,8 @@ export default function AuditLogsPage() {
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-slate-800/50">
-                        <TableHead className="text-slate-300">ID</TableHead>
+                        {/* <TableHead className="text-slate-300">ID</TableHead> */}
+                        <TableHead className="text-slate-300">Request ID</TableHead>
                         <TableHead className="text-slate-300">
                           <button
                             onClick={() => handleSort("username")}
@@ -291,8 +352,11 @@ export default function AuditLogsPage() {
                           key={log.id}
                           className="border-slate-800 hover:bg-slate-800/30"
                         >
-                          <TableCell className="text-slate-300 font-mono text-sm">
+                          {/* <TableCell className="text-slate-300 font-mono text-sm">
                             {log.id}
+                          </TableCell> */}
+                          <TableCell className="text-slate-300">
+                            {log.requestId}
                           </TableCell>
                           <TableCell className="text-slate-300">
                             {log.username || log.doneBy}

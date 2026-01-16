@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getGrpcClient, grpcCall } from "@/lib/grpc-client";
 import { isValidRegion } from "@/lib/regions";
 import type { GetCompleteCallDetailsRequest, GetCompleteCallDetailsResponse } from "@/types/grpc";
-import { getUserDetails } from "@/lib/utils";
+import { getUserDetails, getClientIP } from "@/lib/utils";
 import { createAuditLog } from "@/lib/audit";
 import { requirePermissionFromSession, PERMISSIONS } from "@/lib/permissions";
 import { AUDIT_LOG_ACTIONS } from "@/lib/constants";
@@ -56,7 +56,10 @@ export async function POST(
     }
 
     // Cache miss - fetch from gRPC
-    const client = getGrpcClient(region);
+    // Get client IP and userId for gRPC headers
+    const clientIP = getClientIP(request);
+    const requestId = crypto.randomUUID();
+    const client = getGrpcClient(region, userDetails.id, clientIP, requestId);
     
     // Proto loader converts camelCase to snake_case automatically
     const grpcRequest: GetCompleteCallDetailsRequest = {
@@ -79,6 +82,7 @@ export async function POST(
     await createAuditLog(
       AUDIT_LOG_ACTIONS.EXPORT_CALL_DETAILS,
       region,
+      requestId,
       { callId, practiceId }
     );
 

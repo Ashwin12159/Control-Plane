@@ -8,6 +8,7 @@ import { getUserDetails } from "./utils";
 export async function createAuditLog(
   action: string,
   region: string,
+  requestId: string,
   payload?: Record<string, unknown>
 ): Promise<void> {
   try {
@@ -15,11 +16,12 @@ export async function createAuditLog(
     const db = await getDataSource();
     const auditLogRepository = db.getRepository(AuditLog);
 
-    const auditLog: AuditLog = {
+    const auditLog: Partial<AuditLog> = {
       action,
       region,
       payload: payload ? JSON.stringify(payload) : null,
       doneBy: userDetails.email,
+      request_id: requestId,
     };
 
     await auditLogRepository.save(auditLog);

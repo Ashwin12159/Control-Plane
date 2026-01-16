@@ -28,3 +28,36 @@ export const getUserDetails = async (): Promise<UserDetails> => {
     permissions: (user.user as any)?.permissions || [],
   };
 };
+
+/**
+ * Get client IP address from NextRequest
+ * Handles various proxy headers (X-Forwarded-For, X-Real-IP, etc.)
+ */
+export function getClientIP(request: Request | { headers: Headers }): string {
+  // Try various headers that might contain the real IP
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  if (forwardedFor) {
+    // X-Forwarded-For can contain multiple IPs, take the first one
+    return forwardedFor.split(",")[0].trim();
+  }
+
+  const realIP = request.headers.get("x-real-ip");
+  if (realIP) {
+    return realIP.trim();
+  }
+
+  const cfConnectingIP = request.headers.get("cf-connecting-ip"); // Cloudflare
+  if (cfConnectingIP) {
+    return cfConnectingIP.trim();
+  }
+
+  // Try Next.js specific IP header
+  const nextIP = (request as any).ip;
+  if (nextIP) {
+    return nextIP;
+  }
+
+  // Fallback to connection remote address if available
+  // Note: In Next.js, we don't have direct access to socket, so this is a fallback
+  return "unknown";
+}

@@ -22,14 +22,21 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const limit = parseInt(searchParams.get("limit") || "20", 10);
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+    const limitParam = searchParams.get("limit");
+    const limit = limitParam 
+      ? Math.max(1, Math.min(100, parseInt(limitParam, 10)))
+      : 10; // Default to 10 if not provided
     const sortBy = searchParams.get("sortBy") || "createdAt";
     const sortOrder = searchParams.get("sortOrder") || "desc";
     const searchUsername = searchParams.get("searchUsername") || "";
     const filterRegion = searchParams.get("filterRegion") || "";
+    const filterAction = searchParams.get("filterAction") || "";
 
     const skip = (page - 1) * limit;
+
+    // Debug logging (remove in production)
+    console.log("Audit logs API - Page:", page, "Limit:", limit, "Skip:", skip);
 
     const db = await getDataSource();
     const auditLogRepository = db.getRepository(AuditLog);
@@ -53,6 +60,10 @@ export async function GET(request: NextRequest) {
       queryBuilder.andWhere("audit_log.region = :filterRegion", { filterRegion });
     }
 
+    if (filterAction) {
+      queryBuilder.andWhere("audit_log.action = :filterAction", { filterAction });
+    }
+
     // Sort by username or timestamp
     if (sortBy === "username") {
       queryBuilder.orderBy("user.username", sortOrder.toUpperCase() as "ASC" | "DESC");
@@ -63,19 +74,26 @@ export async function GET(request: NextRequest) {
     // Always add secondary sort by timestamp
     queryBuilder.addOrderBy("audit_log.createdAt", "DESC");
 
-    // Get total count (before pagination)
-    const total = await queryBuilder.getCount();
+    // Get total count (before pagination) - clone the query builder to avoid affecting the main query
+    const countQueryBuilder = queryBuilder.clone();
+    const total = await countQueryBuilder.getCount();
 
     // Apply pagination and get raw results
+    // IMPORTANT: skip and take must be applied after all where clauses and ordering
+    // Use limit() and offset() as an alternative to ensure pagination works
     const auditLogs = await queryBuilder
-      .skip(skip)
-      .take(limit)
+      .offset(skip)
+      .limit(limit)
       .getRawMany();
 
+    // Debug logging (remove in production)
+    console.log("Audit logs API - Page:", page, "Limit:", limit, "Skip:", skip, "Returned:", auditLogs.length, "Total:", total);
+
     // Map results to include username
-    const auditLogsWithUser: AuditLogWithUser[] = auditLogs.map((row: any) => {
+    const auditLogsWithUser: Partial<AuditLog>[] = auditLogs.map((row: any) => {
       return {
         id: row.audit_log_id,
+        requestId: row.audit_log_request_id,
         action: row.audit_log_action,
         payload: row.audit_log_payload,
         doneBy: row.audit_log_doneBy,

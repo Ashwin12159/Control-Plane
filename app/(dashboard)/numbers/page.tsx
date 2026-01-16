@@ -72,7 +72,7 @@ export default function NumbersPage() {
     setShowConfirm(false);
 
     try {
-      const response = await fetch(`/api/grpc/${region}/numbers-not-in-bifrost`, {
+      const response = await fetch(`/api/v1/${region}/numbers-not-in-bifrost`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

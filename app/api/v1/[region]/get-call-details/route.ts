@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getGrpcClient, grpcCall } from "@/lib/grpc-client";
 import { isValidRegion } from "@/lib/regions";
 import type { GetCallDetailsRequest, GetCallDetailsResponse } from "@/types/grpc";
-import { getUserDetails } from "@/lib/utils";
+import { getUserDetails, getClientIP } from "@/lib/utils";
 import { requirePermissionFromSession, PERMISSIONS } from "@/lib/permissions";
 import { createAuditLog } from "@/lib/audit";
 import { AUDIT_LOG_ACTIONS } from "@/lib/constants";
+import { generateGrafanaExploreUrl } from "@/lib/grafana";
 
 export async function POST(
   request: NextRequest,
@@ -53,7 +54,10 @@ export async function POST(
       );
     }
 
-    const client = getGrpcClient(region);
+    // Get client IP and userId for gRPC headers
+    const clientIP = getClientIP(request);
+    const requestId = crypto.randomUUID();
+    const client = getGrpcClient(region, userDetails.id, clientIP, requestId);
     
     // Convert camelCase to snake_case for gRPC
     const grpcRequest: any = {
@@ -71,8 +75,21 @@ export async function POST(
     await createAuditLog(
       AUDIT_LOG_ACTIONS.GET_CALL_DETAILS,
       region,
+      requestId,
       { practiceId, callId }
     );
+    // console.log("response", response);
+    // add grafanaUrl to the response
+    if(response?.callDetails) {
+      const grafanaUrl = generateGrafanaExploreUrl({
+        region: region as any,
+        startTime: response?.callDetails?.callTime ? new Date(response?.callDetails?.callTime).getTime() : new Date().getTime(),
+        endTime: response?.callDetails?.callEndTime ? new Date(response?.callDetails?.callEndTime).getTime() : new Date().getTime(),
+        callId: response?.callDetails?.callId as string,
+        filename: "/home/csiq/.pm2/logs/CallController-out.log",
+      });
+      response.callDetails!.grafanaUrl = grafanaUrl;
+    }
 
     return NextResponse.json(response);
   } catch (error) {

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getGrpcClient, grpcCall } from "@/lib/grpc-client";
 import { isValidRegion } from "@/lib/regions";
 import type { GetNumbersNotInNumberCacheRequest, GetNumbersNotInNumberCacheResponse } from "@/types/grpc";
-import { getUserDetails } from "@/lib/utils";
+import { getUserDetails, getClientIP } from "@/lib/utils";
 import { requirePermissionFromSession, PERMISSIONS } from "@/lib/permissions";
 import { createAuditLog } from "@/lib/audit";
 import { AUDIT_LOG_ACTIONS } from "@/lib/constants";
@@ -35,7 +35,10 @@ export async function POST(
       );
     }
 
-    const client = getGrpcClient(region);
+    // Get client IP and userId for gRPC headers
+    const clientIP = getClientIP(request);
+    const requestId = crypto.randomUUID();
+    const client = getGrpcClient(region, userDetails.id, clientIP, requestId);
     // Empty request - no parameters needed
     const grpcRequest: any = {};
 
@@ -49,6 +52,7 @@ export async function POST(
     await createAuditLog(
       AUDIT_LOG_ACTIONS.GET_NUMBERS_NOT_IN_CACHE,
       region,
+      requestId,
       {}
     );
 

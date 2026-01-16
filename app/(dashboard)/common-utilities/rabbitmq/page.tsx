@@ -23,45 +23,46 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+type OperationType = "queue" | "exchange";
+
 const formSchema = z.object({
-  queueName: z.string().min(1, "Queue name is required"),
+  operationType: z.enum(["queue", "exchange"]),
+  queueName: z.string().optional(),
+  exchangeName: z.string().optional(),
   payload: z.string().min(1, "Payload is required"),
+}).refine((data) => {
+  if (data.operationType === "queue") {
+    return data.queueName && data.queueName.length > 0;
+  } else {
+    return data.exchangeName && data.exchangeName.length > 0;
+  }
+}, {
+  message: "Queue name or Exchange name is required",
+  path: ["queueName"],
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
 const samplePayloads = {
-  practice: JSON.stringify(
+  empty: "",
+  mwi: JSON.stringify(
     {
-      type: "practice",
-      practiceId: "PR123456",
-      action: "sync",
-      timestamp: new Date().toISOString(),
-    },
-    null,
-    2
-  ),
-  location: JSON.stringify(
-    {
-      type: "location",
-      locationId: "LOC789012",
-      action: "update",
-      data: {
-        name: "Main Office",
-        address: "123 Main St",
+      event: "mwi",
+      endpoint: "ee2573daf434fb34c8af49fe90cb9@uat-metrowest.csiq.io",
+      payload: {
+        newVoicemailCount: 12,
+        oldVoicemailCount: 0,
       },
     },
     null,
     2
   ),
-  device: JSON.stringify(
+  provision: JSON.stringify(
     {
-      type: "device",
-      deviceId: "DEV345678",
-      action: "register",
-      metadata: {
-        model: "iPhone 14",
-        os: "iOS 17",
+      event: "provision",
+      endpoint: "4016f19b0d2e4943aa155745ec4d873d@uat-metrowest.csiq.io",
+      payload: {
+        action: "yealink-check-cfg",
       },
     },
     null,
@@ -80,14 +81,19 @@ export default function RabbitMQPage() {
     handleSubmit,
     setValue,
     watch,
+    reset,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      operationType: "queue",
       queueName: "",
+      exchangeName: "",
       payload: "",
     },
   });
+
+  const operationType = watch("operationType");
 
   const onSubmit = async (data: FormValues) => {
     setPendingSubmit(() => () => {
@@ -101,27 +107,51 @@ export default function RabbitMQPage() {
     setShowConfirm(false);
 
     try {
-      const response = await fetch(`/api/grpc/${region}/push-queue`, {
+      const endpoint = data.operationType === "queue" 
+        ? `/api/v1/${region}/push-queue`
+        : `/api/v1/${region}/broadcast-exchange`;
+      
+      const requestBody = data.operationType === "queue"
+        ? {
+            queueName: data.queueName,
+            payloadJson: data.payload,
+          }
+        : {
+            exchangeName: data.exchangeName,
+            payloadJson: data.payload,
+          };
+
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          queueName: data.queueName,
-          payloadJson: data.payload,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || "Failed to push to queue");
+        throw new Error(result.error || `Failed to ${data.operationType === "queue" ? "push to queue" : "broadcast to exchange"}`);
       }
 
-      toast.success("Message pushed to queue successfully");
+      toast.success(
+        data.operationType === "queue"
+          ? "Message pushed to queue successfully"
+          : "Message broadcast to exchange successfully"
+      );
+      // Reset form to default values
+      reset({
+        operationType: "queue",
+        queueName: "",
+        exchangeName: "",
+        payload: "",
+      });
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to push to queue"
+        error instanceof Error 
+          ? error.message 
+          : `Failed to ${data.operationType === "queue" ? "push to queue" : "broadcast to exchange"}`
       );
     } finally {
       setIsLoading(false);
@@ -137,35 +167,76 @@ export default function RabbitMQPage() {
     <RouteProtection>
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-white">RabbitMQ Queue</h1>
+        <h1 className="text-3xl font-bold text-white">RabbitMQ</h1>
         <p className="text-slate-400 mt-2">
-          Push messages to RabbitMQ queues in {region} region
+          Push messages to RabbitMQ queues or broadcast to exchanges in {region} region
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Push to Queue</CardTitle>
+          <CardTitle>RabbitMQ Operations</CardTitle>
           <CardDescription>
-            Enter queue name and JSON payload to push
+            Choose to push to a queue or broadcast to an exchange
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="queueName">Queue Name</Label>
-              <Input
-                id="queueName"
-                {...register("queueName")}
-                placeholder="e.g., practice.sync"
-                disabled={isLoading}
-              />
-              {errors.queueName && (
-                <p className="text-sm text-red-500">
-                  {errors.queueName.message}
-                </p>
-              )}
+              <Label htmlFor="operationType">Operation Type</Label>
+              <Select
+                value={operationType}
+                onValueChange={(value: OperationType) => {
+                  setValue("operationType", value);
+                  // Clear the other field when switching
+                  if (value === "queue") {
+                    setValue("exchangeName", "");
+                  } else {
+                    setValue("queueName", "");
+                  }
+                }}
+              >
+                <SelectTrigger id="operationType" className="w-full">
+                  <SelectValue placeholder="Select operation type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="queue">Push to Queue</SelectItem>
+                  <SelectItem value="exchange">Broadcast to Exchange</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+
+            {operationType === "queue" ? (
+              <div className="space-y-2">
+                <Label htmlFor="queueName">Queue Name</Label>
+                <Input
+                  id="queueName"
+                  {...register("queueName")}
+                  placeholder="e.g., practice.sync"
+                  disabled={isLoading}
+                />
+                {errors.queueName && (
+                  <p className="text-sm text-red-500">
+                    {errors.queueName.message}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="exchangeName">Exchange Name</Label>
+                <Input
+                  id="exchangeName"
+                  {...register("exchangeName")}
+                  placeholder="e.g., events.exchange"
+                  disabled={isLoading}
+                />
+                {errors.exchangeName && (
+                  <p className="text-sm text-red-500">
+                    {errors.exchangeName.message}
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -179,9 +250,9 @@ export default function RabbitMQPage() {
                     <SelectValue placeholder="Sample Payloads" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="practice">Practice</SelectItem>
-                    <SelectItem value="location">Location</SelectItem>
-                    <SelectItem value="device">Device</SelectItem>
+                    <SelectItem value="empty">Empty</SelectItem>
+                    <SelectItem value="mwi">MWI</SelectItem>
+                    <SelectItem value="provision">Provision</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -202,10 +273,10 @@ export default function RabbitMQPage() {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Pushing...
+                  {operationType === "queue" ? "Pushing..." : "Broadcasting..."}
                 </>
               ) : (
-                "Push to Queue"
+                operationType === "queue" ? "Push to Queue" : "Broadcast to Exchange"
               )}
             </Button>
           </form>
@@ -217,8 +288,25 @@ export default function RabbitMQPage() {
           <DialogHeader>
             <DialogTitle>Confirm Operation</DialogTitle>
             <DialogDescription>
-              You are about to push a message to the queue in the{" "}
-              <strong>{region}</strong> region. Do you want to continue?
+              You are about to {watch("operationType") === "queue" ? "push a message to the queue" : "broadcast a message to the exchange"} in the{" "}
+              <strong>{region}</strong> region.
+              {watch("operationType") === "queue" && watch("queueName") && (
+                <>
+                  <br />
+                  <br />
+                  Queue: <strong>{watch("queueName")}</strong>
+                </>
+              )}
+              {watch("operationType") === "exchange" && watch("exchangeName") && (
+                <>
+                  <br />
+                  <br />
+                  Exchange: <strong>{watch("exchangeName")}</strong>
+                </>
+              )}
+              <br />
+              <br />
+              Do you want to continue?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

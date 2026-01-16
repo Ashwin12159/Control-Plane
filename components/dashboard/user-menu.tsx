@@ -10,8 +10,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, Mail } from "lucide-react";
+import { LogOut, User, Mail, Badge } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ROLES } from "@/lib/permissions";
 
 export function UserMenu() {
   const { data: session, status } = useSession();
@@ -42,9 +43,13 @@ export function UserMenu() {
   
   const username = user?.name || (user as any)?.username || "User";
   const email = user?.email || "";
+  const role = (user as any)?.role || null;
+  const isSuperAdmin = role === ROLES.SUPER_ADMIN;
+
+  const permissions = (user as any)?.permissions || [];
   const initials = username
     .split(" ")
-    .map((n) => n[0])
+    .map((n: string) => n[0])
     .join("")
     .toUpperCase()
     .slice(0, 2);
@@ -62,7 +67,20 @@ export function UserMenu() {
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-col items-start text-left">
-            <span className="text-sm font-medium text-white">{username}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-white">{username}</span>
+              {role && (
+                <span
+                  className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                    isSuperAdmin
+                      ? "bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-300 border border-purple-500/30"
+                      : "bg-gradient-to-r from-blue-500/20 to-cyan-500/20 text-blue-300 border border-blue-500/30"
+                  }`}
+                >
+                  {isSuperAdmin ? "Super Admin" : "User"}
+                </span>
+              )}
+            </div>
             {email && (
               <span className="text-xs text-slate-400">{email}</span>
             )}
@@ -74,6 +92,17 @@ export function UserMenu() {
           <div className="flex items-center gap-2">
             <User className="h-4 w-4 text-slate-400" />
             <span className="text-white">{username}</span>
+            {role && (
+              <span
+                className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                  isSuperAdmin
+                    ? "bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-300 border border-purple-500/30"
+                    : "bg-gradient-to-r from-blue-500/20 to-cyan-500/20 text-blue-300 border border-blue-500/30"
+                }`}
+              >
+                {isSuperAdmin ? "Super Admin" : "User"}
+              </span>
+            )}
           </div>
           {email && (
             <div className="flex items-center gap-2 text-xs text-slate-400">

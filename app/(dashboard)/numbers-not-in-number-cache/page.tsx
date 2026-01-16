@@ -43,7 +43,7 @@ export default function NumbersNotInNumberCachePage() {
     setShowConfirm(false);
 
     try {
-      const response = await fetch(`/api/grpc/${region}/numbers-not-in-number-cache`, {
+      const response = await fetch(`/api/v1/${region}/numbers-not-in-number-cache`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

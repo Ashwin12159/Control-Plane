@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getGrpcClient, grpcCall } from "@/lib/grpc-client";
 import { isValidRegion } from "@/lib/regions";
 import type { ListPracticesRequest, ListPracticesResponse } from "@/types/grpc";
-import { getUserDetails } from "@/lib/utils";
+import { getUserDetails, getClientIP } from "@/lib/utils";
 import { requirePermissionFromSession, PERMISSIONS } from "@/lib/permissions";
 
 export async function GET(
@@ -33,7 +33,10 @@ export async function GET(
       );
     }
 
-    const client = getGrpcClient(region);
+    // Get client IP and userId for gRPC headers
+    const clientIP = getClientIP(request);
+    const requestId = crypto.randomUUID();
+    const client = getGrpcClient(region, userDetails.id, clientIP, requestId);
     // Empty request - no parameters needed
     const grpcRequest: ListPracticesRequest = {};
 

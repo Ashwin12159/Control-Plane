@@ -151,9 +151,9 @@ control-plane/
 
 All gRPC operations are region-aware and require a confirmation dialog:
 
-- `POST /api/grpc/[region]/push-queue` - Push message to RabbitMQ queue
-- `POST /api/grpc/[region]/check-sync` - Check sync status
-- `POST /api/grpc/[region]/numbers-not-in-bifrost` - Get numbers not in Bifrost
+- `POST /api/v1/[region]/push-queue` - Push message to RabbitMQ queue
+- `POST /api/v1/[region]/check-sync` - Check sync status
+- `POST /api/v1/[region]/numbers-not-in-bifrost` - Get numbers not in Bifrost
 
 ### Regions
 

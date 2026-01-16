@@ -4,6 +4,7 @@ import path from "path";
 import { getRegionConfig } from "./regions";
 import type {
   PushToRabbitMQQueueRequest,
+  BroadcastToRabbitMQExchangeRequest,
   PushToRabbitMQResponse,
   CheckSyncRequest,
   CheckSyncResponse,
@@ -20,6 +21,7 @@ import type {
   GetCompleteCallDetailsRequest,
   GetCompleteCallDetailsResponse,
 } from "@/types/grpc";
+import { generateJWTToken } from "./jwt";
 
 const PROTO_PATH = path.join(process.cwd(), "proto", "ops.proto");
 
@@ -34,6 +36,10 @@ const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
 interface OperationsServiceClient extends grpc.Client {
   PushToRabbitMQQueue: (
     request: PushToRabbitMQQueueRequest,
+    callback: (error: grpc.ServiceError | null, response: PushToRabbitMQResponse) => void
+  ) => void;
+  BroadcastToRabbitMQExchange: (
+    request: BroadcastToRabbitMQExchangeRequest,
     callback: (error: grpc.ServiceError | null, response: PushToRabbitMQResponse) => void
   ) => void;
   CheckSync: (
@@ -66,24 +72,40 @@ interface OperationsServiceClient extends grpc.Client {
   ) => void;
 }
 
-function createMetadata(regionCode: string): grpc.Metadata {
+function createMetadata(
+  regionCode: string,
+  userId?: string,
+  clientIP?: string,
+  requestId?: string
+): grpc.Metadata {
   const metadata = new grpc.Metadata();
   metadata.set("x-region", regionCode);
-    
-  // Generate token variable name: AUTH_TOKEN_{REGION_CODE} with dashes replaced by underscores
-  const tokenVariableName = `AUTH_TOKEN_${regionCode.toUpperCase().replace(/-/g, "_")}`;
-  const token = process.env[tokenVariableName];
-  
-  if (token) {
-    metadata.set("authorization", `Bearer ${token}`);
+  // Add client IP if provided
+  if (clientIP) {
+    metadata.set("x-client-ip", clientIP);
+  }
+
+  // Add request ID if provided
+  if (requestId) {
+    metadata.set("x-correlation-id", requestId);
+  }
+  // implement jwt token instead of AUTH_TOKEN environment variable
+  const jwtToken = generateJWTToken(regionCode, { sub: userId, requestId }, "300");  
+  if (jwtToken) {
+    metadata.set("authorization", `Bearer ${jwtToken}`);
   } else {
-    console.warn(`Warning: AUTH_TOKEN environment variable ${tokenVariableName} is not set`);
+    console.warn(`Warning: JWT token for region ${regionCode} is not set`);
   }
   
   return metadata;
 }
 
-export function getGrpcClient(regionCode: string): OperationsServiceClient {
+export function getGrpcClient(
+  regionCode: string,
+  userId?: string,
+  clientIP?: string,
+  requestId?: string
+): OperationsServiceClient {
   const regionConfig = getRegionConfig(regionCode);
   
   if (!regionConfig) {
@@ -98,9 +120,12 @@ export function getGrpcClient(regionCode: string): OperationsServiceClient {
     grpc.credentials.createInsecure()
   ) as unknown as OperationsServiceClient;
 
-  // Store region code and metadata creator on the client for use in grpcCall
+  // Store region code, userId, clientIP and metadata creator on the client for use in grpcCall
   (client as any).__regionCode = regionCode;
-  (client as any).__createMetadata = () => createMetadata(regionCode);
+  (client as any).__userId = userId;
+  (client as any).__clientIP = clientIP;
+  (client as any).__requestId = requestId;
+  (client as any).__createMetadata = () => createMetadata(regionCode, userId, clientIP, requestId);
 
   return client;
 }

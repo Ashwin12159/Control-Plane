@@ -56,6 +56,7 @@ export default function GenerateSignedURLPage() {
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -76,7 +77,7 @@ export default function GenerateSignedURLPage() {
     setShowConfirm(false);
 
     try {
-      const response = await fetch(`/api/grpc/${region}/generate-signed-url`, {
+      const response = await fetch(`/api/v1/${region}/generate-signed-url`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -94,6 +95,10 @@ export default function GenerateSignedURLPage() {
 
       setResult(result);
       toast.success("Signed URL generated successfully");
+      // Reset form to default values
+      reset({
+        url: "",
+      });
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to generate signed URL"

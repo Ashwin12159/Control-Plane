@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getGrpcClient, grpcCall } from "@/lib/grpc-client";
 import { isValidRegion } from "@/lib/regions";
-import type { GenerateSignedURLRequest, GenerateSignedURLResponse } from "@/types/grpc";
-import { getUserDetails } from "@/lib/utils";
+import type { GetNumbersNotInBifrostRequest, GetNumbersNotInBifrostResponse } from "@/types/grpc";
+import { getUserDetails, getClientIP } from "@/lib/utils";
 import { requirePermissionFromSession, PERMISSIONS } from "@/lib/permissions";
 import { createAuditLog } from "@/lib/audit";
 import { AUDIT_LOG_ACTIONS } from "@/lib/constants";
@@ -26,7 +26,7 @@ export async function POST(
     const permissionCheck = requirePermissionFromSession(
       userDetails.permissions,
       userDetails.role,
-      PERMISSIONS.GENERATE_SIGNED_URL
+      PERMISSIONS.NUMBERS_NOT_IN_BIFROST
     );
     if (!permissionCheck.authorized) {
       return NextResponse.json(
@@ -36,32 +36,36 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { url } = body;
+    const { trunkSid } = body;
 
-    if (!url) {
+    if (!trunkSid) {
       return NextResponse.json(
-        { error: "url is required" },
+        { error: "trunkSid is required" },
         { status: 400 }
       );
     }
 
-    const client = getGrpcClient(region);
+    // Get client IP and userId for gRPC headers
+    const clientIP = getClientIP(request);
+    const requestId = crypto.randomUUID();
+    const client = getGrpcClient(region, userDetails.id, clientIP, requestId);
     // Convert camelCase to snake_case for proto
     const grpcRequest: any = {
-      url,
+      trunk_sid: trunkSid,
     };
 
-    const response = await grpcCall<any, GenerateSignedURLResponse>(
+    const response = await grpcCall<any, GetNumbersNotInBifrostResponse>(
       client,
-      "GenerateSignedURL",
+      "GetNumbersNotInBifrost",
       grpcRequest
     );
 
     // Create audit log
     await createAuditLog(
-      AUDIT_LOG_ACTIONS.GENERATE_SIGNED_URL,
+      AUDIT_LOG_ACTIONS.GET_NUMBERS_NOT_IN_BIFROST,
       region,
-      { url }
+      requestId,
+      { trunkSid }
     );
 
     return NextResponse.json(response);
@@ -75,4 +79,3 @@ export async function POST(
     );
   }
 }
-

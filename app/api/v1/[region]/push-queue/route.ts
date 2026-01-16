@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getGrpcClient, grpcCall } from "@/lib/grpc-client";
 import { isValidRegion } from "@/lib/regions";
 import type { PushToRabbitMQQueueRequest, PushToRabbitMQResponse } from "@/types/grpc";
-import { getUserDetails } from "@/lib/utils";
+import { getUserDetails, getClientIP } from "@/lib/utils";
 import { createAuditLog } from "@/lib/audit";
 import { requirePermissionFromSession, PERMISSIONS } from "@/lib/permissions";
 import { AUDIT_LOG_ACTIONS } from "@/lib/constants";
@@ -45,7 +45,10 @@ export async function POST(
       );
     }
 
-    const client = getGrpcClient(region);
+    // Get client IP and userId for gRPC headers
+    const clientIP = getClientIP(request);
+    const requestId = crypto.randomUUID();
+    const client = getGrpcClient(region, userDetails.id, clientIP, requestId);
     // Convert camelCase to snake_case for proto
     const grpcRequest: any = {
       queueName: queueName,
@@ -62,6 +65,7 @@ export async function POST(
     await createAuditLog(
       AUDIT_LOG_ACTIONS.PUSH_QUEUE,
       region,
+      requestId,
       { queueName, payloadJson }
     );
     if (!response.success) {

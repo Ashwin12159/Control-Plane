@@ -4,6 +4,11 @@ export interface PushToRabbitMQQueueRequest {
   payloadJson: string;
 }
 
+export interface BroadcastToRabbitMQExchangeRequest {
+  exchangeName: string;
+  payloadJson: string;
+}
+
 export interface PushToRabbitMQResponse {
   success: boolean;
   message: string;
@@ -123,6 +128,7 @@ export interface CallFlow {
 }
 
 export interface CallDetails {
+  grafanaUrl: string;
   callId: string;
   practiceId: string;
   callTime: string; // ISO 8601 timestamp
